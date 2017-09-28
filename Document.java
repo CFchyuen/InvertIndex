@@ -6,13 +6,51 @@ public class Document {
    private String pubDate;
    
    public Document () {
+      docID = 0;
+      title = "";
+      author = "";
+      abs = "";
+      pubDate = "";
    }
    
-   public Document(int d, String t, String au, String ab, String p){
+   public void setDocID(int d) {
       docID = d;
-      title = t;
-      author = au;
-      abs = ab;
-      pubDate = p;
    }
+   
+   public void setTitle(String t) {
+      title = t;
+   }
+   
+   public void setAuth(String au){
+      author += au;
+   }
+   
+   public void setAbs(String ab){
+      abs += " " + ab;
+   }
+   
+   public void setPubDate(String p) {
+      pubDate += p;
+   }
+   
+   public int getDocID() {
+      return docID;
+   }
+   
+   public String getTitle() {
+      return title;
+   }
+   
+   public String getAuth(){
+      return author;
+   }
+   
+   public String getAbs(){
+      return abs;
+   }
+   
+   public String getPubDate() {
+      return pubDate;
+   }
+   
 }
