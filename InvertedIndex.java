@@ -23,9 +23,9 @@ public class InvertedIndex {
       } **/
       
       ArrayList<Document> parsedCollection = parseCollection(documentCollection);
-      Map<String, String> dictionary = makeDictionary(documentCollection);
+      Map<String, Integer> dictionary = makeDictionary(parsedCollection);
       
-      System.out.println(parsedCollection.get(19).getAbs());
+      System.out.println(dictionary);
    }
 
    public static ArrayList<Document> parseCollection(File file) {
@@ -71,10 +71,67 @@ public class InvertedIndex {
       return pc;
    }
    
-   public static Map<String,String> makeDictionary(File file) {
-      Map<String, String> dictionary = new HashMap<String, String>();
+   public static Map<String, Integer> makeDictionary(ArrayList<Document> pc) {
+      Map<String, Integer> dictionary = new HashMap<String, Integer>();
+      File file = new File("dictionary.txt");
       
+      //parses all terms in all documents
+      for (final Document d : pc) {
+         String doc = d.getTitle() + d.getAbs();
+         Scanner input = new Scanner(doc);
+         
+         while (input.hasNext()) {
+            String token = input.next(); 
+            token = token.toLowerCase();
+            token = token.replaceFirst("^[^a-zA-Z]+", "");
+            token = token.replaceAll("[^a-zA-Z]+$", "");
+            
+            if (!dictionary.containsKey(token)) {
+               dictionary.put(token, 0);
+            }
+         }
+      }
       
+      //sorts dictionary
+      dictionary = new TreeMap<String,Integer>(dictionary);
+      
+      //for every document, create a temp dictionary to store terms
+      //if term from temp dictionary is a term from dictionary (full), increate doc count
+      int count = 0;
+      for (final Document d : pc) {
+         Map<String, Integer> dictionaryTemp = new HashMap<String,Integer>();
+         String doc = d.getTitle() + d.getAbs();
+         Scanner input = new Scanner(doc);
+
+         while (input.hasNext()) {
+            String token = input.next(); 
+            token = token.toLowerCase();
+            token = token.replaceFirst("^[^a-zA-Z]+", "");
+            token = token.replaceAll("[^a-zA-Z]+$", "");
+            if (!dictionaryTemp.containsKey(token)) {
+               dictionaryTemp.put(token, 0);
+               if (dictionary.containsKey(token)) {
+                  dictionary.put(token, dictionary.get(token) +1);
+               }
+            }
+         }
+
+      }
+      
+      try { 
+         FileWriter fw = new FileWriter(file);
+         for (Map.Entry<String, Integer> entry : dictionary.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            fw.write(key + " " + value);     
+            fw.write("\r\n");
+         }
+          fw.close();  
+      } catch (IOException ioe) {
+         System.out.println(ioe);
+      }
+      
+
       
       return dictionary;
    }
