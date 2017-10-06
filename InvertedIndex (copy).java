@@ -175,23 +175,15 @@ public class InvertedIndex {
                Posting posting = new Posting(term);
                posting.setDocID(d.getDocID());
                String doc = d.getTitle() + d.getAbs();
-               //Scanner input = new Scanner(doc);
-               String[] words = doc.split("\\s+");
-               for (String w : words) {
-		 if (w.equalsIgnoreCase(term)) {
-		 posting.incrementTermFreq();
-		 addToList =1;
-	       }
-
-	       }		
-               /**while (input.hasNext()) {
+               Scanner input = new Scanner(doc);
+               while (input.hasNext()) {
                   String token = input.next(); 
                   token = token.toLowerCase();
                   if(token.equals(term)){
                      posting.incrementTermFreq();
                      addToList = 1;
                   }
-               }**/
+               }
                if(addToList == 1){
                   fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getTermFreq());
                   fw.write("\r\n");
