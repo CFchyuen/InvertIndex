@@ -10,6 +10,7 @@ public class InvertedIndex {
    private static final String T_ABS = "W";
    private static final String T_PUB = "B";
    private static final String T_AUTH = "A";
+	private static Map<String, ArrayList<Document>> term_location;
   
    public static void main(String [] args) 
    {
@@ -65,6 +66,7 @@ public class InvertedIndex {
    
    public static Map<String, Integer> makeDictionary(ArrayList<Document> pc, int stop, int stem) {
       Map<String, Integer> dictionary = new HashMap<String, Integer>();
+		term_location = new HashMap<String,ArrayList<Document>>();
       Porter stemmer = new Porter();
       File file = new File("dictionary.txt");
       File stopFile = new File("common_words");
@@ -92,11 +94,13 @@ public class InvertedIndex {
 	    
             if (!dictionary.containsKey(token)) {
                dictionary.put(token, 0);
+					term_location.put(token, new ArrayList<Document>());
             }
          }
       }
       //sorts dictionary
       dictionary = new TreeMap<String,Integer>(dictionary);
+		term_location = new TreeMap<String,ArrayList<Document>>();
       //for every document, create a temp dictionary to store terms
       //if term from temp dictionary is a term from dictionary (full), increate doc count
       int count = 0;
@@ -117,11 +121,15 @@ public class InvertedIndex {
 							continue;
 						}
 					}
-            
+            //if temporary dictionary does not contain token, add to temp dic
             if (!dictionaryTemp.containsKey(token)) {
                dictionaryTemp.put(token, 0);
                if (dictionary.containsKey(token)) {
                   dictionary.put(token, dictionary.get(token) +1);
+						if (term_location.get(token) == null) {
+							term_location.put(token, new ArrayList<Document>());
+						}
+						term_location.get(token).add(d);
                }
             }
          }
@@ -161,42 +169,37 @@ public class InvertedIndex {
 
      
    public static void makePostingsLists(ArrayList<Document> pc, Map<String, Integer> dictionary) {
-      //ArrayList<Posting> postingList = new ArrayList<Posting>();
+      ArrayList<Posting> postingList = new ArrayList<Posting>();
+		ArrayList<Document> list = new ArrayList<Document>();
+
       File file = new File("postingLists.txt");
-      
       try {
          FileWriter fw = new FileWriter(file);
          int addToList;
-         for (Map.Entry<String, Integer> entry : dictionary.entrySet()) {
+         for (Map.Entry<String, ArrayList<Document>> entry : term_location.entrySet()) {
             String term = entry.getKey();
-            //System.out.println(term);
-            for (final Document d : pc) {
-               addToList = 0;
-               Posting posting = new Posting(term);
-               posting.setDocID(d.getDocID());
-               String doc = d.getTitle() + d.getAbs();
-               //Scanner input = new Scanner(doc);
-               String[] words = doc.split("\\s+");
-               for (String w : words) {
-		 if (w.equalsIgnoreCase(term)) {
-		 posting.incrementTermFreq();
-		 addToList =1;
-	       }
-
-	       }		
-               /**while (input.hasNext()) {
-                  String token = input.next(); 
-                  token = token.toLowerCase();
-                  if(token.equals(term)){
-                     posting.incrementTermFreq();
-                     addToList = 1;
-                  }
-               }**/
-               if(addToList == 1){
-                  fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getTermFreq());
-                  fw.write("\r\n");
-               }
-            }
+            System.out.println(term);
+					for (Document d : entry.getValue()) {
+						addToList = 0;
+						Posting posting = new Posting(term);
+						posting.setDocID(d.getDocID());
+						String doc = d.getTitle() + d.getAbs();
+						//Scanner input = new Scanner(doc);
+						String[] words = doc.split("\\s+");
+						for (String w : words) {
+							if (w.equalsIgnoreCase(term)) {
+								posting.incrementTermFreq();
+								addToList =1;
+							}
+						}
+					
+						if(addToList == 1) {
+							//postingList.add(posting);
+							fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getTermFreq());
+							fw.write("\r\n");
+						}
+					}
+				
          }
       } catch (IOException ioe) {
         System.out.println(ioe);
