@@ -1,4 +1,3 @@
-
 import java.util.*;
 import java.io.*;
 
@@ -10,6 +9,8 @@ public class InvertedIndex {
    private static final String T_ABS = "W";
    private static final String T_PUB = "B";
    private static final String T_AUTH = "A";
+	private static int N_VALUE;
+	
 	private static Map<String, ArrayList<Document>> term_location;
   
    public static void main(String [] args) 
@@ -20,10 +21,11 @@ public class InvertedIndex {
       System.out.println("Do you want to use Porter's Stemming algorithm? (0 for no / 1 for yes)");
       int stem = input.nextInt();
       File documentCollection = new File("cacm.all");
+		ArrayList<String> stopWords = stopWords(new File("common_words"));
       ArrayList<Document> parsedCollection = parseCollection(documentCollection);
-      Map<String, Integer> dictionary = makeDictionary(parsedCollection, stop, stem);
-      makePostingsLists(parsedCollection, dictionary);
-      //System.out.println(dictionary);
+      Map<String, Integer> dictionary = makeDictionary(parsedCollection, stop, stem, stopWords);
+		ArrayList<IDF> IDFValues = makeIDF(dictionary);
+      makePostingsLists(parsedCollection, dictionary,IDFValues);
    }
 
    public static ArrayList<Document> parseCollection(File file) {
@@ -58,18 +60,21 @@ public class InvertedIndex {
                }               
             }            
          }
+			
+			N_VALUE = countDoc;
+			
       } catch(FileNotFoundException exception) {
          System.out.println(exception);
       }
       return pc;
    }
    
-   public static Map<String, Integer> makeDictionary(ArrayList<Document> pc, int stop, int stem) {
+   public static Map<String, Integer> makeDictionary(ArrayList<Document> pc, int stop, int stem, ArrayList<String> stopWords) {
       Map<String, Integer> dictionary = new HashMap<String, Integer>();
 		term_location = new HashMap<String,ArrayList<Document>>();
       Porter stemmer = new Porter();
       File file = new File("dictionary.txt");
-      File stopFile = new File("common_words");
+      //File stopFile = new File("common_words");
       //parses all terms in all documents
       for (final Document d : pc) {
          String doc = d.getTitle() + d.getAbs();
@@ -77,9 +82,8 @@ public class InvertedIndex {
          while (input.hasNext()) {
             String token = input.next(); 
             token = token.toLowerCase();
-            //token = token.replaceFirst("^[^a-zA-Z]+", "");
-            //token = token.replaceAll("[^a-zA-Z]+$", "");
-            //System.out.println(token);
+				token = token.replaceFirst("^[^a-zA-Z]+", "");
+            token = token.replaceAll("[^a-zA-Z]+$", "");
             if(token.matches(".*\\d+.*")){
                continue;
             }  
@@ -87,11 +91,10 @@ public class InvertedIndex {
                token = stemmer.stripAffixes(token);
             }
             if(stop == 1) {
-            	if(stopWords(stopFile,token)){
+					if (stopWords.contains(token)){
 						continue;
                }
             }
-	    
             if (!dictionary.containsKey(token)) {
                dictionary.put(token, 0);
 					term_location.put(token, new ArrayList<Document>());
@@ -111,13 +114,15 @@ public class InvertedIndex {
          while (input.hasNext()) {
             String token = input.next(); 
             token = token.toLowerCase();
-            //token = token.replaceFirst("^[^a-zA-Z]+", "");
-            //token = token.replaceAll("[^a-zA-Z]+$", "");
+				token = token.replaceFirst("^[^a-zA-Z]+", "");
+            token = token.replaceAll("[^a-zA-Z]+$", "");
+				
 				if(stem == 1){ //stem the words
 						token = stemmer.stripAffixes(token);
 					}
 					if(stop == 1) {
-						if(stopWords(stopFile,token)){
+						//if(stopWords(stopFile,token)){
+						if(stopWords.contains(token)){
 							continue;
 						}
 					}
@@ -149,57 +154,91 @@ public class InvertedIndex {
       return dictionary;
    }
    
-   public static boolean stopWords(File stop, String checkTerm) {
-        try {	
-		Scanner sw = new Scanner(stop);
-		while (sw.hasNextLine()) {
-			try {
-				if (sw.next().equalsIgnoreCase(checkTerm))
-					return true;
-			} catch (NoSuchElementException e) {
-                  }
-		}
-	} catch(FileNotFoundException exception) {
-         System.out.println(exception);
-        }
-	
-	return false;
+	/*
+	 * Checks to see if token is a stopword
+	 */
+   public static ArrayList<String> stopWords(File stop){
+		ArrayList<String> lines = new ArrayList<String>();
+		try{ 
+			Scanner sc = new Scanner(stop);
+			while (sc.hasNextLine()) {
+			  lines.add(sc.nextLine().toLowerCase());
+			}
+		} catch(FileNotFoundException exception) {
+			System.out.println(exception);
+		  }
+		return lines;
    }
 	
-
-     
-   public static void makePostingsLists(ArrayList<Document> pc, Map<String, Integer> dictionary) {
+	public static ArrayList<IDF> makeIDF(Map<String, Integer> dictionary) {
+		ArrayList<IDF> IDFValues = new ArrayList<IDF>();
+		
+		File file = new File("IDF.txt");
+		int count = 0;
+		
+		for (Map.Entry<String, Integer> entry : dictionary.entrySet()) {
+			String term = entry.getKey();
+			int docFreq = entry.getValue();
+			
+			IDFValues.add(new IDF());
+			
+			IDFValues.get(count).setTerm(term);
+			IDFValues.get(count).setDF(docFreq);
+			IDFValues.get(count).setIDF(N_VALUE);
+			count++;
+		}
+		
+		try { 
+			FileWriter fw = new FileWriter(file);
+			for (IDF i : IDFValues) {
+				fw.write(i.getTerm() + " " + i.getDF() + " " + i.getIDF());
+				fw.write("\r\n");
+			}
+			fw.close();  
+		} catch (IOException ioe) {
+			System.out.println(ioe);
+		}
+		
+		return IDFValues;
+	}
+	
+   public static void makePostingsLists(ArrayList<Document> pc, Map<String, Integer> dictionary, ArrayList<IDF> idf) {
       ArrayList<Posting> postingList = new ArrayList<Posting>();
 		ArrayList<Document> list = new ArrayList<Document>();
-
       File file = new File("postingLists.txt");
+		int count = 0;
       try {
          FileWriter fw = new FileWriter(file);
          int addToList;
          for (Map.Entry<String, ArrayList<Document>> entry : term_location.entrySet()) {
             String term = entry.getKey();
-            System.out.println(term);
-					for (Document d : entry.getValue()) {
-						addToList = 0;
-						Posting posting = new Posting(term);
-						posting.setDocID(d.getDocID());
-						String doc = d.getTitle() + d.getAbs();
-						//Scanner input = new Scanner(doc);
-						String[] words = doc.split("\\s+");
-						for (String w : words) {
-							if (w.equalsIgnoreCase(term)) {
-								posting.incrementTermFreq();
-								addToList =1;
-							}
-						}
-					
-						if(addToList == 1) {
-							//postingList.add(posting);
-							fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getTermFreq());
-							fw.write("\r\n");
+            //System.out.println(term);
+				for (Document d : entry.getValue()) {
+					addToList = 0;
+					Posting posting = new Posting(term);
+					posting.setDocID(d.getDocID());
+					String doc = d.getTitle() + d.getAbs();
+					String[] words = doc.split("\\s+");
+					for (String w : words) {
+						if (w.equalsIgnoreCase(term)) {
+							posting.incrementFreq();
+							addToList =1;
 						}
 					}
-				
+					if(addToList == 1) {
+						//postingList.add(posting);
+						for(IDF i : idf){
+							if (posting.getTerm().equals(i.getTerm())) {
+								fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getFreq() + " " + posting.getTermFreq() + " " + posting.getWeight(i.getIDF()));
+								fw.write("\r\n");
+							}
+						}
+						//if (!idf.get(count).getTerm().equals(posting.getTerm())) {
+							//count ++;
+						//} 
+						
+					}
+				}
          }
       } catch (IOException ioe) {
         System.out.println(ioe);
