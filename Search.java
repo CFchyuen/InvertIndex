@@ -7,7 +7,7 @@ public class Search {
    private static final int NUM_DOCS = 3204;
 
    public static void main(String[] args) {
-      File postingList = new File("postingLists.txt");
+      File postingFile = new File("postingLists.txt");
       File dictionary = new File("dictionary.txt");
       
       Scanner input = new Scanner(System.in);
@@ -17,6 +17,7 @@ public class Search {
       query = input.next();
 
       Map<String,Integer> dictionaryMap = createDicMap(dictionary);
+      ArrayList<Posting> postingList = createPostingList(postingFile);
       
       createVector(postingList, dictionaryMap);
       
@@ -25,12 +26,8 @@ public class Search {
          double[] vector = entry.getValue();
          
          
-         for(double v : vector)
-            if(v != 0)
-            //System.out.print(v + ", ");
          
-         
-         System.out.println();
+         //System.out.println("docID: " + docID);
       }
       
    }
@@ -39,7 +36,7 @@ public class Search {
       Map<String,Integer> dictionaryMap = new HashMap<String,Integer>();
       try {
          Scanner input = new Scanner(dictionary);
-         int count = 0; //doc #
+         int count = 1; //doc #
 
          while (input.hasNext()){
             String term = input.next();
@@ -57,36 +54,58 @@ public class Search {
          
    }
    
-   public static void createVector(File postingList, Map<String,Integer> dictionaryMap){
-      try {
-         Scanner input = new Scanner(postingList);
+   public static ArrayList<Posting> createPostingList(File posting) {
+      ArrayList<Posting> pl = new ArrayList<Posting>();
+      try{
+         Scanner input = new Scanner(posting);
+         int count = 0;
+         while (input.hasNext()) {
+            pl.add(new Posting(input.next()));
+                  int docID = input.nextInt();
+                  int freq = input.nextInt();
+                  double termFreq = input.nextDouble();
+                  double weight = input.nextDouble();
+
+            pl.get(count).setDocID(docID);
+            pl.get(count).setFreq(freq);
+            pl.get(count).setTermFreq(termFreq);
+            pl.get(count).setWeight(weight);
+            //System.out.println("created:" + count);
+            count++;
+         }
+      } catch(FileNotFoundException exception) {
+         System.out.println(exception);
+      }
+      
+      return pl;
+   }
+   
+   public static void createVector(ArrayList<Posting> pl, Map<String,Integer> dictionaryMap){
          int docIter = 1; //iterates through all document numbers 1-3024
          int count = 0; //for iterating through vector elements
          
          
          while (docIter != NUM_DOCS) {
+
             double[] vector = new double[dicSize];
          
             for (int i = 0 ; i < dicSize ;i++){
                vector[i] = 0;
             }
-            while (input.hasNext()) {
-               String term = input.next();
-               int docID = input.nextInt();
-               int freq = input.nextInt();
-               double termFreq = input.nextDouble();
-               double weight = input.nextDouble();
-               if (docID == docIter){
+            
+            for (Posting p : pl) {
+               String term = p.getTerm();
+               int docID = p.getDocID();
+               int freq = p.getFreq();
+               double termFreq = p.getTermFreq();
+               double weight = p.getWeight();
+               if (docIter==docID){
                   vector[dictionaryMap.get(term)] = weight;
-                  System.out.println("docID: " + docID + " term: " + dictionaryMap.get(term));
+                  System.out.println("docID: " + docID + " term #: " + dictionaryMap.get(term));
                }
             }
             docVector.put(docIter,vector);
             docIter++;
-         }
-      
-       } catch(FileNotFoundException exception) {
-         System.out.println(exception);
-      }
+         } 
    }
 }

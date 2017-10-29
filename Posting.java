@@ -14,6 +14,7 @@ public class Posting {
       term = word;
       docID = 0;
       freq = 0;
+      termFreq = 0;
       weight = 0;
       pos = 0;
       highlight = "";
@@ -40,10 +41,28 @@ public class Posting {
       return termFreq * idf;
    }
    
+   public double getWeight(){
+      return weight;
+   }
+   
+   public void setTerm(String t){
+      term = t;  
+   }
    public void setDocID(int id){
       docID = id;  
    } 
    public void incrementFreq(){
       freq++;
    }
+   
+   public void setFreq(int f){
+      freq = f;  
+   } 
+   public void setTermFreq(double tf){
+      termFreq = tf; 
+   } 
+   
+   public void setWeight(double w){
+      weight = w;  
+   } 
 }
