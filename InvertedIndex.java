@@ -224,24 +224,23 @@ public class InvertedIndex {
 					for (String w : words) {
 						if (w.equalsIgnoreCase(term)) {
 							posting.incrementFreq();
-							addToList =1;
+							addToList = 1;
 						}
 					}
+
 					if(addToList == 1) {
-						//postingList.add(posting);
 						for(IDF i : idf){
-							if (posting.getTerm().equals(i.getTerm())) {
+							if (posting.getTerm().equalsIgnoreCase(i.getTerm())) {
+								if(posting.getTerm().equals("zooplankton")) 
+								//System.out.println(posting.getTerm() + " : " + posting.getDocID() + " : " + posting.getFreq());
 								fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getFreq() + " " + posting.getTermFreq() + " " + posting.getWeight(i.getIDF()));
 								fw.write("\r\n");
 							}
 						}
-						//if (!idf.get(count).getTerm().equals(posting.getTerm())) {
-							//count ++;
-						//} 
-						
 					}
 				}
          }
+			fw.close();
       } catch (IOException ioe) {
         System.out.println(ioe);
       }

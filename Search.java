@@ -11,24 +11,45 @@ public class Search {
       File dictionary = new File("dictionary.txt");
       
       Scanner input = new Scanner(System.in);
-      String query;
+      String[] query;
       
       System.out.println("Please Enter Query");
-      query = input.next();
-
+      query = input.nextLine().split("\\s+");
+      
+      //creates a dictionary map key = term; value = index of term in dictionary
       Map<String,Integer> dictionaryMap = createDicMap(dictionary);
+      
+      //creates an arraylist of all postings
       ArrayList<Posting> postingList = createPostingList(postingFile);
       
+      //creates a document vector with weighted values
       createVector(postingList, dictionaryMap);
       
-      for (Map.Entry<Integer,double[]> entry : docVector.entrySet()) {
-         int docID = entry.getKey();
-         double[] vector = entry.getValue();
-         
-         
-         
-         //System.out.println("docID: " + docID);
+      //creates the query vector from user input
+      double[] queryVector = createQueryVector(query, dictionaryMap);
+      
+      //stores the docID and value of the 
+      Map<Integer,Double> docScores = createDocScores(queryVector);
+      
+      for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
+         System.out.println(entry.getKey() + ": " + entry.getValue());
       }
+      
+      
+      /**
+      try {
+         FileWriter fw = new FileWriter("queryvector.txt");
+
+         for (double q : queryVector) {
+            fw.write(q + ",");
+         }
+         
+          fw.close();
+      } catch (IOException ioe) {
+         System.out.println(ioe);
+      }
+      */
+         
       
    }
    
@@ -80,14 +101,29 @@ public class Search {
       return pl;
    }
    
+   public static double[] createQueryVector(String[] query, Map<String,Integer> dictionaryMap){
+      double[] vector = new double[dicSize+1];
+       for (int i = 0 ; i < dicSize ;i++){
+               vector[i] = 0;
+       }
+      for (String q : query){
+         if (dictionaryMap.containsKey(q)) {
+          vector[dictionaryMap.get(q)] = 1;
+         }
+      }
+      
+       
+      return vector;
+      
+   }
    public static void createVector(ArrayList<Posting> pl, Map<String,Integer> dictionaryMap){
          int docIter = 1; //iterates through all document numbers 1-3024
          int count = 0; //for iterating through vector elements
          
          
-         while (docIter != NUM_DOCS) {
+         while (docIter <= NUM_DOCS) {
 
-            double[] vector = new double[dicSize];
+            double[] vector = new double[dicSize+1];
          
             for (int i = 0 ; i < dicSize ;i++){
                vector[i] = 0;
@@ -101,11 +137,37 @@ public class Search {
                double weight = p.getWeight();
                if (docIter==docID){
                   vector[dictionaryMap.get(term)] = weight;
-                  System.out.println("docID: " + docID + " term #: " + dictionaryMap.get(term));
+                  //System.out.println("docID: " + docID + " term #: " + dictionaryMap.get(term));
                }
             }
             docVector.put(docIter,vector);
             docIter++;
          } 
+   }
+   
+   public static Map<Integer,Double> createDocScores(double[] queryVector) {
+      Map<Integer,Double> docScores = new HashMap<Integer,Double>();
+      
+      for (Map.Entry<Integer,double[]> entry : docVector.entrySet()){
+         int docID = entry.getKey();
+         double[] vectorA = entry.getValue();
+         double score = cosineSimilarity(vectorA, queryVector);
+         
+         docScores.put(docID, score);
+      }
+      
+      return docScores;
+   }
+   
+   public static double cosineSimilarity(double[] vectorA, double[] vectorB) {
+       double dotProduct = 0.0;
+       double normA = 0.0;
+       double normB = 0.0;
+       for (int i = 0; i < vectorA.length; i++) {
+           dotProduct += vectorA[i] * vectorB[i];
+           normA += Math.pow(vectorA[i], 2);
+           normB += Math.pow(vectorB[i], 2);
+       }   
+       return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
    }
 }
