@@ -86,7 +86,10 @@ public class InvertedIndex {
             token = token.replaceAll("[^a-zA-Z]+$", "");
             if(token.matches(".*\\d+.*")){
                continue;
-            }  
+            } 
+				if (token == null || token.isEmpty()) {
+				  continue;
+				}
             if(stem == 1){ //stem the words
                token = stemmer.stripAffixes(token);
             }
@@ -191,8 +194,7 @@ public class InvertedIndex {
 		try { 
 			FileWriter fw = new FileWriter(file);
 			for (IDF i : IDFValues) {
-				fw.write(i.getTerm() + " " + i.getDF() + " " + i.getIDF());
-				fw.write("\r\n");
+				fw.write(i.getTerm() + " " + i.getDF() + " " + i.getIDF() + "\r\n");
 			}
 			fw.close();  
 		} catch (IOException ioe) {

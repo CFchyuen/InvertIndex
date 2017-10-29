@@ -1,5 +1,6 @@
 import java.util.*;
 import java.io.*;
+import java.lang.*;
 
 public class IDF {
    private String term;
@@ -21,7 +22,7 @@ public class IDF {
    }
    
    public void setIDF(int N) {
-      idf = N/df;
+      idf = Math.log10(N/df);
    }
    
    public String getTerm(){
