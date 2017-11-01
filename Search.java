@@ -6,7 +6,7 @@ public class Search {
    private static int dicSize = 0;
    private static final int NUM_DOCS = 3204;
 
-   public static void main(String[] args) {
+   public static void main(ArrayList<Query> parsedQuery) {
       File postingFile = new File("postingLists.txt");
       File dictionary = new File("dictionary.txt");
       File idfFile = new File("IDF.txt");
@@ -14,9 +14,10 @@ public class Search {
       //Scanner input = new Scanner(System.in);
       //System.out.println("Please Enter Query");
       
-		String[] query;
-      int queryID = Integer.parseInt(args[0]);
-      query = args[1].split("\\s+");
+		for (Query q: parsedQuery){
+		String token = q.getAbs() + " " + q.getPub();
+      int queryID = q.getQueryID();
+      String[] query = token.split("\\s+");
 		//System.out.println(query);
       for (int i = 0; i < query.length; i++ ){
          query[i] = query[i].toLowerCase();
@@ -32,9 +33,10 @@ public class Search {
       ArrayList<Posting> postingList = createPostingList(postingFile);
       
       //creates a document vector with weighted values
+		if (docVector.isEmpty())
       createVector(postingList, dictionaryMap);
 		
-		System.out.println("done vector");
+		//System.out.println("done vector");
       
       //create IDF from IDF.txt
       Map<String,Double> idf = createIDF(idfFile); 
@@ -43,16 +45,18 @@ public class Search {
       double[] queryVector = createQueryVector(query, dictionaryMap,idf);
 		
       
-      //stores the docID and value of the 
+      //stores the docID and score
       Map<Integer,Double> docScores = createDocScores(queryVector);
-		//stores docID + score
-      //Map<Integer,Double> relDocScores = getRelDocScores(docScores);
+		
 		
 		docScores = sortByValue(docScores);
 		
-		//for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
-			//System.out.println("Doc #: " + entry.getKey() + " Score: " + entry.getValue());
-		//}
+		//prints doc scores and ranking for manual search
+		if (queryID == -1) {
+			for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
+				System.out.println("Doc #: " + entry.getKey() + " Score: " + entry.getValue());
+			}
+		}
       
       try{
          FileWriter fw = new FileWriter("qret.text",true);
@@ -72,7 +76,7 @@ public class Search {
          System.out.println(ioe);
       }
       
-   	
+		}
 	}
  
 	public static Map sortByValue(Map unsortedMap) {
