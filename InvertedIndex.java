@@ -231,7 +231,6 @@ public class InvertedIndex {
 					if(addToList == 1) {
 						for(IDF i : idf){
 							if (posting.getTerm().equalsIgnoreCase(i.getTerm())) {
-								if(posting.getTerm().equals("zooplankton")) 
 								//System.out.println(posting.getTerm() + " : " + posting.getDocID() + " : " + posting.getFreq());
 								fw.write(posting.getTerm() + " " + posting.getDocID() + " " + posting.getFreq() + " " + posting.getTermFreq() + " " + posting.getWeight(i.getIDF()));
 								fw.write("\r\n");

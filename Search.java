@@ -9,13 +9,22 @@ public class Search {
    public static void main(String[] args) {
       File postingFile = new File("postingLists.txt");
       File dictionary = new File("dictionary.txt");
+      File idfFile = new File("IDF.txt");
       
-      Scanner input = new Scanner(System.in);
-      String[] query;
+      //Scanner input = new Scanner(System.in);
+      //System.out.println("Please Enter Query");
       
-      System.out.println("Please Enter Query");
-      query = input.nextLine().split("\\s+");
-      
+		String[] query;
+      int queryID = Integer.parseInt(args[0]);
+      query = args[1].split("\\s+");
+		//System.out.println(query);
+      for (int i = 0; i < query.length; i++ ){
+         query[i] = query[i].toLowerCase();
+			query[i]  = query[i].replaceFirst("^[^a-zA-Z]+", "");
+         query[i]  = query[i].replaceAll("[^a-zA-Z]+$", "");
+         //System.out.println(query[i]);
+      }
+		
       //creates a dictionary map key = term; value = index of term in dictionary
       Map<String,Integer> dictionaryMap = createDicMap(dictionary);
       
@@ -24,32 +33,88 @@ public class Search {
       
       //creates a document vector with weighted values
       createVector(postingList, dictionaryMap);
+		
+		System.out.println("done vector");
+      
+      //create IDF from IDF.txt
+      Map<String,Double> idf = createIDF(idfFile); 
       
       //creates the query vector from user input
-      double[] queryVector = createQueryVector(query, dictionaryMap);
+      double[] queryVector = createQueryVector(query, dictionaryMap,idf);
+		
       
       //stores the docID and value of the 
       Map<Integer,Double> docScores = createDocScores(queryVector);
+		//stores docID + score
+      //Map<Integer,Double> relDocScores = getRelDocScores(docScores);
+		
+		docScores = sortByValue(docScores);
+		
+		//for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
+			//System.out.println("Doc #: " + entry.getKey() + " Score: " + entry.getValue());
+		//}
       
-      for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
-         System.out.println(entry.getKey() + ": " + entry.getValue());
-      }
-      
-      
-      /**
-      try {
-         FileWriter fw = new FileWriter("queryvector.txt");
-
-         for (double q : queryVector) {
-            fw.write(q + ",");
+      try{
+         FileWriter fw = new FileWriter("qret.text",true);
+			int topRanked = 0;
+			
+         for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
+				if (topRanked == 50 ) {
+					break;
+				}
+            fw.write(queryID + " " + entry.getKey() + "\r\n");
+				topRanked++;
          }
-         
-          fw.close();
+			
+      fw.close();
+      
       } catch (IOException ioe) {
          System.out.println(ioe);
       }
-      */
+      
+   	
+	}
+ 
+	public static Map sortByValue(Map unsortedMap) {
+		Map sortedMap = new TreeMap(new ValueComparator(unsortedMap));
+		sortedMap.putAll(unsortedMap);
+		return sortedMap;
+	}
+   
+   public static Map<String,Double> createIDF(File idfFile) {
+      Map<String,Double> idf = new HashMap<String,Double>();
+      try {
+         Scanner input = new Scanner(idfFile);
+         while (input.hasNext()) {
+            String term = input.next();
+            int df = input.nextInt();
+            double idfValue = input.nextDouble();
+
+            if (idfValue > 1.69) //threshhold for IDF
+               idf.put(term,idfValue);
+         }
+      } catch(FileNotFoundException exception) {
+         System.out.println(exception);
+      }
+      
+      return idf;
+   }
+   
+   public static Map<Integer,Double> getRelDocScores(Map<Integer,Double> docScores){
+      
+      Map<Integer,Double> relScores = new HashMap<Integer,Double>();
+      
+      for (Map.Entry<Integer,Double> entry : docScores.entrySet()){
+         int docID = entry.getKey();
+         double docScore = entry.getValue();
          
+         
+         
+         if (docScore != 0) 
+         relScores.put(docID, docScore);
+      }
+      relScores = new TreeMap<Integer,Double>(relScores);
+      return relScores;
       
    }
    
@@ -101,14 +166,14 @@ public class Search {
       return pl;
    }
    
-   public static double[] createQueryVector(String[] query, Map<String,Integer> dictionaryMap){
+   public static double[] createQueryVector(String[] query, Map<String,Integer> dictionaryMap, Map<String,Double> idf){
       double[] vector = new double[dicSize+1];
        for (int i = 0 ; i < dicSize ;i++){
                vector[i] = 0;
        }
       for (String q : query){
-         if (dictionaryMap.containsKey(q)) {
-          vector[dictionaryMap.get(q)] = 1;
+         if (dictionaryMap.containsKey(q) && idf.containsKey(q) ) {
+          vector[dictionaryMap.get(q)]++;
          }
       }
       
@@ -153,9 +218,13 @@ public class Search {
          double[] vectorA = entry.getValue();
          double score = cosineSimilarity(vectorA, queryVector);
          
-         docScores.put(docID, score);
+         if (Double.isNaN(score)) score = 0;
+			if (score != 0) {
+         	docScores.put(docID, score);
+			}
       }
       
+		docScores = new TreeMap<Integer,Double>(docScores);
       return docScores;
    }
    
@@ -170,4 +239,18 @@ public class Search {
        }   
        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
    }
+}
+
+class ValueComparator implements Comparator {
+	Map map;
+ 
+	public ValueComparator(Map map) {
+		this.map = map;
+	}
+ 
+	public int compare(Object keyA, Object keyB) {
+		Comparable valueA = (Comparable) map.get(keyA);
+		Comparable valueB = (Comparable) map.get(keyB);
+		return valueB.compareTo(valueA);
+	}
 }

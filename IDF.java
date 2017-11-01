@@ -22,7 +22,7 @@ public class IDF {
    }
    
    public void setIDF(int N) {
-      idf = Math.log10(N/df);
+      idf = Math.log10((double)N/(double)df);
    }
    
    public String getTerm(){
